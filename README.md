@@ -21,4 +21,4 @@ make check
 
 Shell cat:
 
-![http://s3.favim.com/orig/47/black-and-white-cat-cute-shell-Favim.com-438008.jpg]
+![shell cat](http://s3.favim.com/orig/47/black-and-white-cat-cute-shell-Favim.com-438008.jpg)
