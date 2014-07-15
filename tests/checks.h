@@ -26,4 +26,6 @@
     suite_add_tcase(s, tc);                     \
   }while(0)
 
+#define times(n) for (int _i_ = 0; _i_ < n; _i_++)
+
 #endif

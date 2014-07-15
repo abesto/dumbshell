@@ -12,19 +12,13 @@ START_TEST(test_mk_state) {
 START_TEST(test_handle_input_backspace) {
   state_t state = mk_state();
   state_set_cmdline(&state, "foobar");
-  handle_input(DEL, &state);
-  handle_input(DEL, &state);
-  handle_input(DEL, &state);
+  times(3) handle_input(DEL, &state);
   ck_assert_str_eq(state.cmdline, "foo");
 } END_TEST
 
 START_TEST(test_handle_input_text) {
   state_t state = mk_state();
-  foreach(char *c, "foob") {
-    handle_input(*c, &state);
-  }
-  handle_input(DEL, &state);
-  handle_input('o', &state);
+  foreach(char *c, "foob\x7fo") handle_input(*c, &state);
   ck_assert_str_eq(state.cmdline, "fooo");
 } END_TEST
 
