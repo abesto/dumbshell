@@ -98,6 +98,7 @@ void handle_input(const char c, state_t* state) {
       state_set_cmdline(state, "");
     }
   }
+  free_operations(ops);
 }
 
 void render(state_t state) {
