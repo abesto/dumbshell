@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(dumbshell)
 set(CMAKE_C_FLAGS "-g -Wall -O0")
 
-add_library(dsh_lib src/mode.c src/logic.c)
+add_library(dsh_lib src/mode.c src/logic.c src/subprocess.c)
 
 add_executable(dsh src/main.c)
 target_link_libraries(dsh dsh_lib)
