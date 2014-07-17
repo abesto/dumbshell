@@ -15,6 +15,8 @@ make
 
 ### Tests
 
+Requires version 0.9.13 of the [check](http://check.sourceforge.net/) unit-testing framework.
+
 ```sh
 cmake .
 make check
