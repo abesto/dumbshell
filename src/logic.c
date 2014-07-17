@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "common.h"
 #include "logic.h"
 #include "subprocess.h"
 
@@ -22,19 +23,55 @@ void state_set_cmdline(state_t* state, const char* cmdline) {
   state->cmdline = new_cmdline;
 }
 
-void handle_input(const char c, state_t* state) {
-  if (c == DEL) {
-    state->cmdline[strlen(state->cmdline)-1] = '\0';
-  } else if (c == '\n') {
-    run_in_foreground(state->cmdline);
-    state_set_cmdline(state, "");
+operation* new_operations(int count) {
+  return malloc(sizeof(operation) * count);
+}
+
+unsigned int process_keypress(const char c, operation** out) {
+  operation* ops;
+  int count;
+  if (c == '\n') {
+    count = 2;
+    ops = new_operations(count);
+    ops[0].type = RUN_IN_FOREGROUND;
+    ops[1].type = CLEAR_CMDLINE;
+  } else if (c == DEL) {
+    count = 1;
+    ops = new_operations(count);
+    ops[0].type = DELETE_LAST_CHAR;
   } else {
-    // Inefficient with memory allocations / copies
-    // BUT: very simple.
-    char* new_cmdline;
-    asprintf(&new_cmdline, "%s%c", state->cmdline, c);
-    state_set_cmdline(state, new_cmdline);
-    free(new_cmdline);
+    count = 1;
+    ops = new_operations(count);
+    ops[0].type = APPEND_CHAR;
+    ops[0].data.c = c;
+  }
+  *out = ops;
+  return count;
+}
+
+void free_operations(operation* ops) {
+  free(ops);
+}
+
+void handle_input(const char c, state_t* state) {
+  operation* ops;
+  int op_count = process_keypress(c, &ops);
+  for (int i = 0; i < op_count; i++) {
+    operation op = ops[i];
+    if (op.type == APPEND_CHAR) {
+      // Inefficient with memory allocations / copies
+      // BUT: very simple.
+      char* new_cmdline;
+      asprintf(&new_cmdline, "%s%c", state->cmdline, op.data.c);
+      state_set_cmdline(state, new_cmdline);
+      free(new_cmdline);
+    } else if (op.type == DELETE_LAST_CHAR) {
+      state->cmdline[strlen(state->cmdline)-1] = '\0';
+    } else if (op.type == RUN_IN_FOREGROUND) {
+      run_in_foreground(state->cmdline);
+    } else if (op.type == CLEAR_CMDLINE) {
+      state_set_cmdline(state, "");
+    }
   }
 }
 
