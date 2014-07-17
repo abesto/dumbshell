@@ -42,17 +42,17 @@ void run_in_foreground(const char* cmdline) {
       tv.tv_sec = 5;
       tv.tv_usec = 0;
       int max_fd = child_stdout[0] > child_stderr[0] ? child_stdout[0] : child_stderr[0];
+      int buf_size = 100;
+      char buf[buf_size];
       if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) > 0) {
         if (FD_ISSET(child_stdout[0], &read_fds)) {
-        char buf[100] = {0};
-          while (read(child_stdout[0], buf, 99)) {
-            printf("out %s", buf);
+          while (memset(buf, 0, buf_size) && read(child_stdout[0], buf, buf_size-1)) {
+            printf("%s", buf);
           }
         }
         if (FD_ISSET(child_stderr[0], &read_fds)) {
-          char buf[100] = {0};
-          while (read(child_stderr[0], buf, 99)) {
-            fprintf(stderr, "err %s", buf);
+          while (memset(buf, 0, buf_size) && read(child_stderr[0], buf, buf_size-1)) {
+            fprintf(stderr, "%s", buf);
           }
         }
       }
