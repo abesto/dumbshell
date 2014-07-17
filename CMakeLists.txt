@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(dumbshell)
-set(CMAKE_C_FLAGS "-g -Wall -O0")
+set(CMAKE_C_FLAGS "-g -Wall -O0 -std=c99")
 
 add_library(dsh_lib src/mode.c src/logic.c src/subprocess.c)
 
