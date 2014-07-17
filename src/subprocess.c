@@ -1,10 +1,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 
 #include "subprocess.h"
 
-void run_in_foreground(const char* cmdline) {
+void run_in_foreground(char *const argv[]) {
   int child_stdin[] = {-1, -1};
   int child_stdout[] = {-1, -1};
   int child_stderr[] = {-1, -1};
@@ -19,8 +21,8 @@ void run_in_foreground(const char* cmdline) {
     dup2(child_stdin[0], STDIN_FILENO); close(child_stdin[1]);
     dup2(child_stdout[1], STDOUT_FILENO); close(child_stdout[0]);
     dup2(child_stderr[1], STDERR_FILENO); close(child_stderr[0]);
-    execlp(cmdline, cmdline, 0);
-    fprintf(stderr, "No can haz %s\n", cmdline);
+    execvp(argv[0], argv);
+    fprintf(stderr, "No can haz %s (%d)\n", argv[0], errno);
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
@@ -35,7 +37,6 @@ void run_in_foreground(const char* cmdline) {
 
     int st;
     do {
-      printf("\n");
       FD_ZERO(&read_fds);
       FD_SET(child_stdout[0], &read_fds);
       FD_SET(child_stderr[0], &read_fds);

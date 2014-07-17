@@ -25,6 +25,14 @@ typedef struct {
 unsigned int process_keypress(const char c, operation** out);
 void free_operations(operation* ops);
 
+typedef struct {
+  int argc;
+  char** argv;
+  char* _tokenized_cmdline;
+} parsed_cmdline;
+parsed_cmdline parse_cmdline(const char* cmdline);
+void free_parsed_cmdline(parsed_cmdline p);
+
 void handle_input(const char c, state_t* state);
 void render(state_t state);
 #endif

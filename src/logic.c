@@ -53,6 +53,26 @@ void free_operations(operation* ops) {
   free(ops);
 }
 
+parsed_cmdline parse_cmdline(const char* cmdline) {
+  parsed_cmdline out;
+  out.argc = 0;
+  out.argv = malloc(sizeof(char*));
+  out._tokenized_cmdline = strdup(cmdline);
+  char* token = strtok(out._tokenized_cmdline, " ");
+  while (token != NULL) {
+    out.argv = realloc(out.argv, sizeof(char*) * (++out.argc + 1));
+    out.argv[out.argc-1] = token;
+    token = strtok(NULL, " ");
+  }
+  out.argv[out.argc] = NULL;
+  return out;
+}
+
+void free_parsed_cmdline(parsed_cmdline p) {
+  free(p._tokenized_cmdline);
+  free(p.argv);
+}
+
 void handle_input(const char c, state_t* state) {
   operation* ops;
   int op_count = process_keypress(c, &ops);
@@ -68,7 +88,12 @@ void handle_input(const char c, state_t* state) {
     } else if (op.type == DELETE_LAST_CHAR) {
       state->cmdline[strlen(state->cmdline)-1] = '\0';
     } else if (op.type == RUN_IN_FOREGROUND) {
-      run_in_foreground(state->cmdline);
+      printf("\n");
+      parsed_cmdline pc = parse_cmdline(state->cmdline);
+      if (pc.argc > 0) {
+        run_in_foreground(pc.argv);
+      }
+      free_parsed_cmdline(pc);
     } else if (op.type == CLEAR_CMDLINE) {
       state_set_cmdline(state, "");
     }
