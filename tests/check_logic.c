@@ -60,16 +60,6 @@ START_TEST(test_process_backspace) {
   free_operations(ops);
 } END_TEST
 
-START_TEST(test_parse_cmdline) {
-  parsed_cmdline cmd = parse_cmdline("ls -l  -a");
-  ck_assert_uint_eq(cmd.argc, 3);
-  ck_assert_str_eq(cmd.argv[0], "ls");
-  ck_assert_str_eq(cmd.argv[1], "-l");
-  ck_assert_str_eq(cmd.argv[2], "-a");
-  ck_assert_ptr_eq(cmd.argv[3], NULL);
-  free_parsed_cmdline(cmd);
-} END_TEST
-
 Suite* logic_suite() {
   Suite *s = suite_create("Logic");
   Tests(s, "State",
@@ -81,7 +71,5 @@ Suite* logic_suite() {
         test_process_printable_characters,
         test_process_newline,
         test_process_backspace);
-  Tests(s, "parse_cmdline",
-        test_parse_cmdline);
   return s;
 }

@@ -54,20 +54,6 @@ void free_operations(operation* ops) {
   free(ops);
 }
 
-parsed_cmdline parse_cmdline(const char* cmdline) {
-  parsed_cmdline out;
-  out.argv = parse(cmdline).output;
-  out.argc = 0;
-  while (out.argv[out.argc] != NULL) {
-    out.argc++;
-  }
-  return out;
-}
-
-void free_parsed_cmdline(parsed_cmdline p) {
-  free(p.argv);
-}
-
 void handle_input(const char c, state_t* state) {
   operation* ops;
   int op_count = process_keypress(c, &ops);
@@ -83,12 +69,15 @@ void handle_input(const char c, state_t* state) {
     } else if (op.type == DELETE_LAST_CHAR) {
       state->cmdline[strlen(state->cmdline)-1] = '\0';
     } else if (op.type == RUN_IN_FOREGROUND) {
-      printf("\n");
-      parsed_cmdline pc = parse_cmdline(state->cmdline);
-      if (pc.argc > 0) {
-        run_in_foreground(pc.argv);
+      cmdline_t* cmdline = parse(state->cmdline);
+      puts("");
+      for (unsigned int i = 0; i < cmdline->cmd_count; i++) {
+        cmd_t* cmd = cmdline->cmds[i];
+        if (cmd->argc > 0) {
+          run_in_foreground(cmd->argv);
+        }
       }
-      free_parsed_cmdline(pc);
+      free_cmdline(cmdline);
     } else if (op.type == CLEAR_CMDLINE) {
       state_set_cmdline(state, "");
     }

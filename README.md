@@ -3,7 +3,7 @@
 This is my excuse to write C. (What's yours?)
 
 Features:
- - it can run `ls -l`
+ - it can run ` ls   ; ls -la `
 
 ### Running
 
