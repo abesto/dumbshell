@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "check_logic.h"
+#include "check_parse.h"
 
 int run_suite(Suite *s) {
   int number_failed;
@@ -22,6 +23,6 @@ int run_suite(Suite *s) {
 
 int main (void) {
   int number_failed = 0;
-  run_suites(number_failed, logic_suite);
+  run_suites(number_failed, logic_suite, parse_suite);
   return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

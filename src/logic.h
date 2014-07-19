@@ -28,7 +28,6 @@ void free_operations(operation* ops);
 typedef struct {
   int argc;
   char** argv;
-  char* _tokenized_cmdline;
 } parsed_cmdline;
 parsed_cmdline parse_cmdline(const char* cmdline);
 void free_parsed_cmdline(parsed_cmdline p);

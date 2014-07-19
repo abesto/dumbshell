@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #include "common.h"
+#include "parse.h"
 #include "logic.h"
 #include "subprocess.h"
 
@@ -55,21 +56,15 @@ void free_operations(operation* ops) {
 
 parsed_cmdline parse_cmdline(const char* cmdline) {
   parsed_cmdline out;
+  out.argv = parse(cmdline).output;
   out.argc = 0;
-  out.argv = malloc(sizeof(char*));
-  out._tokenized_cmdline = strdup(cmdline);
-  char* token = strtok(out._tokenized_cmdline, " ");
-  while (token != NULL) {
-    out.argv = realloc(out.argv, sizeof(char*) * (++out.argc + 1));
-    out.argv[out.argc-1] = token;
-    token = strtok(NULL, " ");
+  while (out.argv[out.argc] != NULL) {
+    out.argc++;
   }
-  out.argv[out.argc] = NULL;
   return out;
 }
 
 void free_parsed_cmdline(parsed_cmdline p) {
-  free(p._tokenized_cmdline);
   free(p.argv);
 }
 
