@@ -65,7 +65,7 @@ mpc_val_t* empty_cmdline() {
 }
 
 mpc_parser_t* mk_parser() {
-  mpc_parser_t* dsh_whitespace = mpc_expect(mpc_oneof(" \t"), "dsh_whitespace");
+    mpc_parser_t* dsh_whitespace = mpc_expect(mpc_oneof(" \t"), "dsh_whitespace");
   mpc_parser_t* dsh_whitespaces = mpc_expect(mpc_many(mpcf_strfold, dsh_whitespace), "dsh_whitespaces");
   mpc_parser_t* dsh_blank = mpc_expect(mpc_apply(dsh_whitespaces, mpcf_free), "dsh_blank");
 
@@ -77,10 +77,9 @@ mpc_parser_t* mk_parser() {
                                                             mpcf_dtor_null)), argv_to_cmd), "cmd");
   mpc_parser_t* one_cmd = mpc_apply(cmd, cmd_to_cmdline);
   mpc_parser_t* more_cmds = mpc_and(2, cmdlines_fold,
-                                    one_cmd,
-                                    mpc_many1(cmdlines_fold, mpc_and(2, mpcf_snd, mpc_char(';'), one_cmd, empty_cmdline)),
-                                    empty_cmdline);
-  mpc_parser_t* cmds = mpc_or(2, mpc_and(2, mpcf_fst, one_cmd, mpc_eoi()), more_cmds);
+                                    mpc_many1(cmdlines_fold, mpc_and(2, mpcf_fst, one_cmd, mpc_char(';'), empty_cmdline)),
+                                    one_cmd);
+  mpc_parser_t* cmds = mpc_or(2, more_cmds, one_cmd);
 
   return cmds;
 }
