@@ -1,109 +1,36 @@
 #include <cassert>
 #include <cstring>
 
+#include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/home/phoenix/core.hpp>
+#include <boost/spirit/home/phoenix/container.hpp>
+#include <boost/spirit/home/phoenix/object.hpp>
+
 #include "parse.hh"
 
-/**
- * Takes any number of strings
- * Concatenates them into an array, terminated with a NULL pointer
- */
-mpc_val_t* str_array_fold(int n, mpc_val_t** xs) {
-  char** vs = (char**) malloc(sizeof(char*) * (n + 1));
-  for (int i = 0; i < n; i++) {
-    vs[i] = strdup(vs[i]);
-    free(xs[i]);
-  }
-  vs[n] = NULL;
-  return vs;
-}
 
-mpc_val_t* argv_to_cmd(mpc_val_t* x) {
-  cmd_t* cmd = (cmd_t*) malloc(sizeof(cmd_t));
-  cmd->argc = 0;
-  cmd->argv = (char**) x;
-  while (cmd->argv[cmd->argc] != NULL) {
-    cmd->argc++;
-  }
-  return cmd;
-}
+dsh::CommandLine* dsh::parse(const std::string& str) {
+  namespace qi = boost::spirit::qi;
+  namespace phoenix = boost::phoenix;
+  using qi::alnum;
+  using qi::char_;
+  using qi::as_string;
+  using qi::lexeme;
+  using qi::omit;
+  using qi::space;
+  using qi::_1;
+  using phoenix::push_back;
+  using phoenix::new_;
 
-mpc_val_t* cmd_to_cmdline(mpc_val_t* x) {
-  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
-  cmdline->cmd_count = 1;
-  cmdline->cmds = (cmd_t**) malloc(sizeof(cmd_t));
-  cmdline->cmds[0] = (cmd_t*) x;
+  dsh::CommandLine* cmdline = new dsh::CommandLine();
+  auto cmd = *space >>
+    (as_string[+(alnum | char_("|-"))] % omit[+space])
+    [push_back(phoenix::ref(cmdline->cmds), new_<Command>(_1))] >>
+    *space;
+  auto maybe_cmd = (cmd | *space);
+  auto cmds = maybe_cmd >> *(char_(';') >> maybe_cmd);
+  qi::parse(str.begin(), str.end(), cmds);
+
+  //std::cout << cmdline->cmdCount() << ' ' << cmdline->cmds.at(0)->argc() << std::endl;
   return cmdline;
-}
-
-mpc_val_t* cmdlines_fold(int n, mpc_val_t** x) {
-  cmdline_t** input = (cmdline_t**)x;
-  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
-  cmdline->cmd_count = 0;
-  cmdline->cmds = NULL;
-  for(int i = 0; i < n; i++) {
-    //printf("%d\n", i);
-    assert(input[i] != NULL);
-    const int old_count = cmdline->cmd_count, new_count = old_count + input[i]->cmd_count;
-    if (old_count != new_count) {
-      assert(old_count < new_count);
-      cmdline->cmds = (cmd_t**) realloc(cmdline->cmds, sizeof(cmdline_t) * new_count);
-      for (int j = 0; j < new_count - old_count; j++) {
-        cmdline->cmds[old_count + j] = input[i]->cmds[j];
-      }
-    }
-    cmdline->cmd_count = new_count;
-    free(input[i]);
-  }
-  return cmdline;
-}
-
-mpc_val_t* empty_cmdline() {
-  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
-  cmdline->cmd_count = 0;
-  cmdline->cmds = NULL;
-  return cmdline;
-}
-
-mpc_parser_t* mk_parser() {
-    mpc_parser_t* dsh_whitespace = mpc_expect(mpc_oneof(" \t"), "dsh_whitespace");
-  mpc_parser_t* dsh_whitespaces = mpc_expect(mpc_many(mpcf_strfold, dsh_whitespace), "dsh_whitespaces");
-  mpc_parser_t* dsh_blank = mpc_expect(mpc_apply(dsh_whitespaces, mpcf_free), "dsh_blank");
-
-  mpc_parser_t* cmd_char = mpc_expect(mpc_or(2, mpc_alphanum(), mpc_oneof("|-")), "valid_char");
-  mpc_parser_t* cmd_chars1 = mpc_expect(mpc_many1(mpcf_strfold, cmd_char), "valid_chars");
-  mpc_parser_t* cmd = mpc_expect(mpc_apply(mpc_many(str_array_fold,
-                                                    mpc_and(3, mpcf_snd,
-                                                            dsh_blank, cmd_chars1, dsh_blank,
-                                                            mpcf_dtor_null)), argv_to_cmd), "cmd");
-  mpc_parser_t* one_cmd = mpc_apply(cmd, cmd_to_cmdline);
-  mpc_parser_t* more_cmds = mpc_and(2, cmdlines_fold,
-                                    mpc_many1(cmdlines_fold, mpc_and(2, mpcf_fst, one_cmd, mpc_char(';'), empty_cmdline)),
-                                    one_cmd);
-  mpc_parser_t* cmds = mpc_or(2, more_cmds, one_cmd);
-
-  return cmds;
-}
-
-cmdline_t* parse(const char* str) {
-  static mpc_parser_t* parser = NULL;
-  if (parser == NULL) {
-    parser = mk_parser();
-  }
-  mpc_result_t result;
-  mpc_parse(str, str, parser, &result);
-  return (cmdline_t*) result.output;
-}
-
-void free_cmd(cmd_t* cmd) {
-  for (unsigned int i = 0; i < cmd->argc; i++) {
-    free(cmd->argv[i]);
-  }
-  free(cmd);
-}
-
-void free_cmdline(cmdline_t* cmdline) {
-  for (unsigned int i = 0; i < cmdline->cmd_count; i++) {
-    free_cmd(cmdline->cmds[i]);
-  }
-  free(cmdline);
 }

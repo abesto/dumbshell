@@ -6,11 +6,17 @@
 
 #include "subprocess.hh"
 
-void run_in_foreground(char *const argv[]) {
+void run_in_foreground(std::vector<std::string> _argv) {
   int child_stdin[] = {-1, -1};
   int child_stdout[] = {-1, -1};
   int child_stderr[] = {-1, -1};
   pid_t pid;
+
+  char* argv[_argv.size() + 1];
+  for (unsigned int i = 0; i < _argv.size(); i++) {
+    argv[i] = strdup(_argv[i].c_str());
+  }
+  argv[_argv.size()] = NULL;
 
   pipe(child_stdin);
   pipe(child_stdout);
@@ -21,7 +27,7 @@ void run_in_foreground(char *const argv[]) {
     dup2(child_stdin[0], STDIN_FILENO); close(child_stdin[1]);
     dup2(child_stdout[1], STDOUT_FILENO); close(child_stdout[0]);
     dup2(child_stderr[1], STDERR_FILENO); close(child_stderr[0]);
-    execvp(argv[0], argv);
+    execvp(argv[0], &argv[0]);
     fprintf(stderr, "No can haz %s (%d)\n", argv[0], errno);
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
@@ -31,6 +37,10 @@ void run_in_foreground(char *const argv[]) {
     close(child_stdin[0]);
     close(child_stdout[1]);
     close(child_stderr[1]);
+
+    for (unsigned int i = 0; i < _argv.size(); i++) {
+      free(argv[i]);
+    }
 
     fd_set read_fds;
     struct timeval tv;

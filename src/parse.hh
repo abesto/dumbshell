@@ -1,20 +1,27 @@
 #ifndef DSH_PARSE_H
 #define DSH_PARSE_H
 
+#include <string>
+#include <vector>
+
 #include "../lib/mpc/mpc.h"
 
-typedef struct {
-  char** argv;
-  unsigned int argc;
-} cmd_t;
+namespace dsh {
+  class Command {
+  public:
+    std::vector<std::string> argv;
+    Command(std::vector<std::string> _argv): argv(_argv) {}
+    unsigned int argc() const { return argv.size(); }
+  };
 
-typedef struct {
-  cmd_t** cmds;
-  unsigned int cmd_count;
-} cmdline_t;
+  class CommandLine {
+  public:
+    std::vector<Command*> cmds;
+    CommandLine() {}
+    unsigned int cmdCount() const { return cmds.size(); }
+  };
 
-mpc_parser_t* mk_parser();
-cmdline_t* parse(const char* str);
-void free_cmdline(cmdline_t* cmdline);
+  CommandLine* parse(const std::string& str);
+}
 
 #endif

@@ -66,15 +66,15 @@ void handle_input(const char c, state_t* state) {
     } else if (op.type == DELETE_LAST_CHAR) {
       state->cmdline[strlen(state->cmdline)-1] = '\0';
     } else if (op.type == RUN_IN_FOREGROUND) {
-      cmdline_t* cmdline = parse(state->cmdline);
+      dsh::CommandLine* cmdline = dsh::parse(state->cmdline);
       puts("");
-      for (unsigned int i = 0; i < cmdline->cmd_count; i++) {
-        cmd_t* cmd = cmdline->cmds[i];
-        if (cmd->argc > 0) {
+      for (unsigned int i = 0; i < cmdline->cmdCount(); i++) {
+        dsh::Command* cmd = cmdline->cmds[i];
+        if (cmd->argc() > 0) {
           run_in_foreground(cmd->argv);
         }
       }
-      free_cmdline(cmdline);
+      delete(cmdline);
     } else if (op.type == CLEAR_CMDLINE) {
       state_set_cmdline(state, "");
     }

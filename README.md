@@ -3,9 +3,7 @@
 This is my excuse to write C++. (See the branch called `c` to see my excuse for writing C.)
 
 Features:
- - it can run ` ls   ; ls -la `
- - BUT, it can't run ` ; ls`
- - also, right now it segfaults in the parser. that'll go away with the migration to another parser lib.
+ - it can run ` ; ls   ; ls -la  ; echo  foobar`
 
 ### Running
 
