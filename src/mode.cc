@@ -7,7 +7,7 @@
 #include <termios.h>
 #include <stdio.h>
 
-#include "mode.h"
+#include "mode.hh"
 
 struct termios original_term_attributes;
 

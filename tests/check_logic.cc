@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "../src/logic.h"
+#include "../src/logic.hh"
 
-#include "check_logic.h"
+#include "check_logic.hh"
 
 START_TEST(test_mk_state) {
   ck_assert_str_eq(mk_state().cmdline, "");
@@ -18,7 +18,7 @@ START_TEST(test_handle_input_backspace) {
 
 START_TEST(test_handle_input_text) {
   state_t state = mk_state();
-  foreach(char *c, "foob\x7fo") handle_input(*c, &state);
+  foreach(const char *c, "foob\x7fo") handle_input(*c, &state);
   ck_assert_str_eq(state.cmdline, "fooo");
 } END_TEST
 

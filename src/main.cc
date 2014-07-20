@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "mode.h"
-#include "logic.h"
+#include "mode.hh"
+#include "logic.hh"
 
 int main() {
   state_t state = mk_state();

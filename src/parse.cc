@@ -1,15 +1,16 @@
-#include <assert.h>
+#include <cassert>
+#include <cstring>
 
-#include "parse.h"
+#include "parse.hh"
 
 /**
  * Takes any number of strings
  * Concatenates them into an array, terminated with a NULL pointer
  */
 mpc_val_t* str_array_fold(int n, mpc_val_t** xs) {
-  char** vs = malloc(sizeof(char*) * (n + 1));
+  char** vs = (char**) malloc(sizeof(char*) * (n + 1));
   for (int i = 0; i < n; i++) {
-    vs[i] = strdup(xs[i]);
+    vs[i] = strdup(vs[i]);
     free(xs[i]);
   }
   vs[n] = NULL;
@@ -17,9 +18,9 @@ mpc_val_t* str_array_fold(int n, mpc_val_t** xs) {
 }
 
 mpc_val_t* argv_to_cmd(mpc_val_t* x) {
-  cmd_t* cmd = malloc(sizeof(cmd_t));
+  cmd_t* cmd = (cmd_t*) malloc(sizeof(cmd_t));
   cmd->argc = 0;
-  cmd->argv = x;
+  cmd->argv = (char**) x;
   while (cmd->argv[cmd->argc] != NULL) {
     cmd->argc++;
   }
@@ -27,16 +28,16 @@ mpc_val_t* argv_to_cmd(mpc_val_t* x) {
 }
 
 mpc_val_t* cmd_to_cmdline(mpc_val_t* x) {
-  cmdline_t* cmdline = malloc(sizeof(cmdline_t));
+  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
   cmdline->cmd_count = 1;
-  cmdline->cmds = malloc(sizeof(cmd_t));
-  cmdline->cmds[0] = x;
+  cmdline->cmds = (cmd_t**) malloc(sizeof(cmd_t));
+  cmdline->cmds[0] = (cmd_t*) x;
   return cmdline;
 }
 
 mpc_val_t* cmdlines_fold(int n, mpc_val_t** x) {
   cmdline_t** input = (cmdline_t**)x;
-  cmdline_t* cmdline = malloc(sizeof(cmdline_t));
+  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
   cmdline->cmd_count = 0;
   cmdline->cmds = NULL;
   for(int i = 0; i < n; i++) {
@@ -45,7 +46,7 @@ mpc_val_t* cmdlines_fold(int n, mpc_val_t** x) {
     const int old_count = cmdline->cmd_count, new_count = old_count + input[i]->cmd_count;
     if (old_count != new_count) {
       assert(old_count < new_count);
-      cmdline->cmds = realloc(cmdline->cmds, sizeof(cmdline_t) * new_count);
+      cmdline->cmds = (cmd_t**) realloc(cmdline->cmds, sizeof(cmdline_t) * new_count);
       for (int j = 0; j < new_count - old_count; j++) {
         cmdline->cmds[old_count + j] = input[i]->cmds[j];
       }
@@ -57,7 +58,7 @@ mpc_val_t* cmdlines_fold(int n, mpc_val_t** x) {
 }
 
 mpc_val_t* empty_cmdline() {
-  cmdline_t* cmdline = malloc(sizeof(cmdline_t));
+  cmdline_t* cmdline = (cmdline_t*) malloc(sizeof(cmdline_t));
   cmdline->cmd_count = 0;
   cmdline->cmds = NULL;
   return cmdline;
@@ -91,7 +92,7 @@ cmdline_t* parse(const char* str) {
   }
   mpc_result_t result;
   mpc_parse(str, str, parser, &result);
-  return result.output;
+  return (cmdline_t*) result.output;
 }
 
 void free_cmd(cmd_t* cmd) {

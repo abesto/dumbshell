@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "subprocess.h"
+#include "subprocess.hh"
 
 void run_in_foreground(char *const argv[]) {
   int child_stdin[] = {-1, -1};

@@ -1,8 +1,8 @@
 #ifndef DSH_LOGIC_H
 #define DSH_LOGIC_H
 
-const char DEL;
-const char* PS1;
+static const char DEL = 127;
+static const char* PS1 = "$ ";
 
 typedef struct {
   char * cmdline;

@@ -4,13 +4,10 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "common.h"
-#include "parse.h"
-#include "logic.h"
-#include "subprocess.h"
-
-const char DEL = 127;
-const char* PS1 = "$ ";
+#include "common.hh"
+#include "parse.hh"
+#include "logic.hh"
+#include "subprocess.hh"
 
 state_t mk_state() {
   state_t state;
@@ -25,7 +22,7 @@ void state_set_cmdline(state_t* state, const char* cmdline) {
 }
 
 operation* new_operations(int count) {
-  return malloc(sizeof(operation) * count);
+  return (operation*) malloc(sizeof(operation) * count);
 }
 
 unsigned int process_keypress(const char c, operation** out) {

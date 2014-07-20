@@ -1,5 +1,5 @@
-#include "check_parse.h"
-#include "../src/parse.h"
+#include "check_parse.hh"
+#include "../src/parse.hh"
 
 START_TEST(test_parse_simple) {
   cmdline_t* cmdline = parse("  ls -a  -l ");
@@ -12,10 +12,10 @@ START_TEST(test_parse_simple) {
 } END_TEST
 
 START_TEST(test_multiple_commands) {
-  char* inputs[] = {"echo; ls", " echo ; ls", ";ls", " ;  ls "};
-  foreach(char** input, inputs) {
+  const char* inputs[] = {"echo; ls", " echo ; ls", ";ls", " ;  ls "};
+  foreach(const char** input, inputs) {
     cmdline_t* cmdline = parse(*input);
-    printf("%s -> %d (%s)\n", *input, cmdline->cmd_count, cmdline->cmds[0]->argv[0]);
+    //printf("%s -> %d (%s)\n", *input, cmdline->cmd_count, cmdline->cmds[0]->argv[0]);
     ck_assert_uint_eq(2, cmdline->cmd_count);
     ck_assert_str_eq("ls", cmdline->cmds[1]->argv[0]);
     free_cmdline(cmdline);

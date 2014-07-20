@@ -1,8 +1,8 @@
 #include <check.h>
 #include <stdlib.h>
 
-#include "check_logic.h"
-#include "check_parse.h"
+#include "check_logic.hh"
+#include "check_parse.hh"
 
 int run_suite(Suite *s) {
   int number_failed;

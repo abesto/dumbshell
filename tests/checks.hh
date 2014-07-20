@@ -2,7 +2,7 @@
 #define DSH_CHECKS_H
 
 #include <check.h>
-#include "../src/common.h"
+#include "../src/common.hh"
 
 #define add_tests(tc, ...)                      \
   do{                                           \
