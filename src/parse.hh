@@ -14,12 +14,12 @@ namespace dsh {
 
   class CommandLine {
   public:
-    std::vector<Command*> cmds;
+    std::vector<Command> cmds;
     CommandLine() {}
     unsigned int cmdCount() const { return cmds.size(); }
   };
 
-  CommandLine* parse(const std::string& str);
+  CommandLine parse(const std::string& str);
 }
 
 #endif

@@ -1,4 +1,3 @@
-#include <cassert>
 #include <cstring>
 
 #include <boost/spirit/home/qi.hpp>
@@ -9,7 +8,7 @@
 #include "parse.hh"
 
 
-dsh::CommandLine* dsh::parse(const std::string& str) {
+dsh::CommandLine dsh::parse(const std::string& str) {
   namespace qi = boost::spirit::qi;
   namespace phoenix = boost::phoenix;
   using qi::alnum;
@@ -20,12 +19,12 @@ dsh::CommandLine* dsh::parse(const std::string& str) {
   using qi::space;
   using qi::_1;
   using phoenix::push_back;
-  using phoenix::new_;
+  using phoenix::construct;
 
-  dsh::CommandLine* cmdline = new dsh::CommandLine();
+  dsh::CommandLine cmdline = dsh::CommandLine();
   auto cmd = *space >>
     (as_string[+(alnum | char_("|-"))] % omit[+space])
-    [push_back(phoenix::ref(cmdline->cmds), new_<Command>(_1))] >>
+    [push_back(phoenix::ref(cmdline.cmds), construct<Command>(_1))] >>
     *space;
   auto maybe_cmd = (cmd | *space);
   auto cmds = maybe_cmd >> *(char_(';') >> maybe_cmd);
