@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "common.hh"
 #include "parse.hh"
 #include "logic.hh"
 #include "subprocess.hh"

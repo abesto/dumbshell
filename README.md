@@ -5,6 +5,9 @@ This is my excuse to write C++. (See the branch called `c` to see my excuse for 
 Features:
  - it can run ` ; ls   ; ls -la  ; echo  foobar`
 
+Dependencies:
+ - Boost 1.55.0
+
 ### Running
 
 ```sh
@@ -14,8 +17,6 @@ make
 ```
 
 ### Tests
-
-Requires version 0.9.13 of the [check](http://check.sourceforge.net/) unit-testing framework.
 
 ```sh
 cmake .

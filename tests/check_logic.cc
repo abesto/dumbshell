@@ -1,75 +1,67 @@
+#include <boost/test/unit_test.hpp>
+
 #include <stdlib.h>
-#include <stdarg.h>
+#include <string>
+
+#include <boost/foreach.hpp>
 
 #include "../src/logic.hh"
 
-#include "check_logic.hh"
 
-START_TEST(test_mk_state) {
-  ck_assert_str_eq(mk_state().cmdline, "");
-} END_TEST
+BOOST_AUTO_TEST_CASE(test_mk_state) {
+  BOOST_CHECK_EQUAL(mk_state().cmdline, "");
+}
 
-START_TEST(test_handle_input_backspace) {
+BOOST_AUTO_TEST_CASE(test_handle_input_backspace) {
   state_t state = mk_state();
   state_set_cmdline(&state, "foobar");
-  times(3) handle_input(DEL, &state);
-  ck_assert_str_eq(state.cmdline, "foo");
-} END_TEST
+  handle_input(DEL, &state); handle_input(DEL, &state); handle_input(DEL, &state);
+  BOOST_CHECK_EQUAL(state.cmdline, "foo");
+}
 
-START_TEST(test_handle_input_text) {
+BOOST_AUTO_TEST_CASE(test_handle_input_text) {
   state_t state = mk_state();
-  foreach(const char *c, "foob\x7fo") handle_input(*c, &state);
-  ck_assert_str_eq(state.cmdline, "fooo");
-} END_TEST
+  std::string input = "foob\x7fo";
+  BOOST_FOREACH(const char c, input) {
+    handle_input(c, &state);
+  }
+  BOOST_CHECK_EQUAL(state.cmdline, "fooo");
+}
 
-START_TEST(test_handle_newline_with_empty_cmdline) {
+BOOST_AUTO_TEST_CASE(test_handle_newline_with_empty_cmdline) {
   state_t state = mk_state();
   handle_input('\n', &state);
-  ck_assert_str_eq(state.cmdline, "");
-} END_TEST
+  BOOST_CHECK_EQUAL(state.cmdline, "");
+}
 
-START_TEST(test_process_printable_characters) {
-  const char cs[] =                 \
+BOOST_AUTO_TEST_CASE(test_process_printable_characters) {
+  std::string cs =                  \
     "abcdefghijklmnopqrstuvfxyz"    \
     "ABCDEFGHIJKLMNOPQRSTUVFXYZ"    \
     "0123456789";
-  foreach(const char* c, cs) {
+  BOOST_FOREACH(const char c, cs) {
     operation* ops;
-    int ops_count = process_keypress(*c, &ops);
-    ck_assert_uint_eq(ops_count, 1);
-    ck_assert_uint_eq(ops[0].type, APPEND_CHAR);
-    ck_assert_uint_eq(ops[0].data.c, *c);
+    int ops_count = process_keypress(c, &ops);
+    BOOST_CHECK_EQUAL(ops_count, 1);
+    BOOST_CHECK_EQUAL(ops[0].type, APPEND_CHAR);
+    BOOST_CHECK_EQUAL(ops[0].data.c, c);
     free_operations(ops);
   }
-} END_TEST
+}
 
-START_TEST(test_process_newline) {
+BOOST_AUTO_TEST_CASE(test_process_newline) {
   operation* ops;
   int ops_count = process_keypress('\n', &ops);
-  ck_assert_uint_eq(ops_count, 2);
-  ck_assert_uint_eq(ops[0].type, RUN_IN_FOREGROUND);
-  ck_assert_uint_eq(ops[1].type, CLEAR_CMDLINE);
+  BOOST_CHECK_EQUAL(ops_count, 2);
+  BOOST_CHECK_EQUAL(ops[0].type, RUN_IN_FOREGROUND);
+  BOOST_CHECK_EQUAL(ops[1].type, CLEAR_CMDLINE);
   free_operations(ops);
-} END_TEST
+}
 
-START_TEST(test_process_backspace) {
+BOOST_AUTO_TEST_CASE(test_process_backspace) {
   operation* ops;
   int ops_count = process_keypress(DEL, &ops);
-  ck_assert_uint_eq(ops_count, 1);
-  ck_assert_uint_eq(ops[0].type, DELETE_LAST_CHAR);
+  BOOST_CHECK_EQUAL(ops_count, 1);
+  BOOST_CHECK_EQUAL(ops[0].type, DELETE_LAST_CHAR);
   free_operations(ops);
-} END_TEST
-
-Suite* logic_suite() {
-  Suite *s = suite_create("Logic");
-  Tests(s, "State",
-        test_mk_state,
-        test_handle_input_backspace,
-        test_handle_input_text,
-        test_handle_newline_with_empty_cmdline);
-  Tests(s, "process_keypress",
-        test_process_printable_characters,
-        test_process_newline,
-        test_process_backspace);
-  return s;
 }

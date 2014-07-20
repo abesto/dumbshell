@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "../lib/mpc/mpc.h"
-
 namespace dsh {
   class Command {
   public:
