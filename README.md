@@ -4,6 +4,7 @@ This is my excuse to write C. (What's yours?)
 
 Features:
  - it can run ` ls   ; ls -la `
+ - BUT, it can't run ` ; ls`
 
 ### Running
 
