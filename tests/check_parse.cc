@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(one_command) {
     BOOST_CHECK_EQUAL(cmdline.at(0).at(0), "ls");
     BOOST_CHECK_EQUAL(cmdline.at(0).at(1), "-a");
     BOOST_CHECK_EQUAL(cmdline.at(0).at(2), "-l");
-    //BOOST_CHECK(cmdline.cmds[0].redirections.empty());
+    BOOST_CHECK(cmdline.at(0).redirections.empty());
   }
 }
 
@@ -88,14 +88,13 @@ BOOST_AUTO_TEST_CASE(test_multiple_commands) {
     dsh::CommandLine cmdline = dsh::parse(input);
     BOOST_CHECK_EQUAL(cmdline.size(), 2);
     BOOST_CHECK_EQUAL(cmdline.at(1).at(0), "ls");
-    //BOOST_CHECK(cmdline.cmds[0].redirections.empty());
-    //BOOST_CHECK(cmdline.cmds[1].redirections.empty());
+    BOOST_CHECK(cmdline.at(0).redirections.empty());
+    BOOST_CHECK(cmdline.at(1).redirections.empty());
   }
 }
 
-/*
 BOOST_AUTO_TEST_CASE(test_pipe) {
   dsh::CommandLine cmdline = dsh::parse("ls | less");
   BOOST_CHECK_EQUAL(cmdline.size(), 2);
+  BOOST_CHECK_EQUAL(cmdline.at(0).redirections.size(), 1);
 }
-*/

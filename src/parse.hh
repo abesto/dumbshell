@@ -28,9 +28,8 @@ namespace dsh {
   };
 
   class Command: public std::vector<std::string> {
-  private:
-    std::map<unsigned int, std::vector<Redirection> > redirections;
   public:
+    std::map<unsigned int, std::vector<Redirection> > redirections;
     Command(std::string arg) { push_back(arg); }
     unsigned int argc() const { return size(); }
     const std::vector<std::string>& getArgv() const { return *this; }
@@ -60,6 +59,12 @@ namespace dsh {
   };
 
   class NewCommandOnSemicolon: public CharHandler {
+  public:
+    virtual bool wants(CommandLine& cmdLine, const char c) const;
+    virtual void handle(CommandLine& cmdLine, const char c) const;
+  };
+
+  class Pipe: public CharHandler {
   public:
     virtual bool wants(CommandLine& cmdLine, const char c) const;
     virtual void handle(CommandLine& cmdLine, const char c) const;

@@ -41,9 +41,25 @@ void dsh::NewCommandOnSemicolon::handle(CommandLine& cmdLine, const char c) cons
   }
 }
 
+bool dsh::Pipe::wants(CommandLine& cmdLine, const char c) const {
+  return c == '|';
+}
+
+void dsh::Pipe::handle(CommandLine& cmdLine, const char c) const {
+  assert(cmdLine.size() > 0);
+  Command& left = cmdLine.back();
+  Command right = Command("");
+  if (left.redirections.find(1) == left.redirections.end()) {
+    left.redirections[1] = std::vector<dsh::Redirection>();
+  }
+  left.redirections.at(1).push_back(dsh::Redirection(&right));
+  cmdLine.push_back(right);
+}
+
 dsh::Parser::Parser() {
   charHandlers.push_back(new NewArgOnSpace());
   charHandlers.push_back(new NewCommandOnSemicolon());
+  charHandlers.push_back(new Pipe());
   charHandlers.push_back(new AppendToLastCommandLastArgv());
 }
 
