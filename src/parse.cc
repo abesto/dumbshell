@@ -1,65 +1,80 @@
-#include <cstring>
-
-#include <boost/spirit/home/qi.hpp>
-#include <boost/spirit/home/phoenix/core.hpp>
-#include <boost/spirit/home/phoenix/core/argument.hpp>
-#include <boost/spirit/home/phoenix/container.hpp>
-#include <boost/spirit/home/phoenix/object.hpp>
+#include <cassert>
+#include <sstream>
+#include <boost/foreach.hpp>
 
 #include "parse.hh"
 
-namespace qi = boost::spirit::qi;
-namespace phoenix = boost::phoenix;
-
-dsh::CommandLine construct_pipe(const std::vector<dsh::CommandLine>& xs) {
-  assert(xs.size() == 2);
-  dsh::CommandLine piped, left = xs[0], right = xs[1];
-  dsh::Redirection out(&(right.cmds[0]));
-  dsh::Redirection in(&(left.cmds.back()));
-
-  std::copy(left.cmds.begin(), left.cmds.end(), std::back_inserter(piped.cmds));
-  piped.cmds.back().redirections[1].push_back(out);
-  std::copy(right.cmds.begin(), right.cmds.end(), std::back_inserter(piped.cmds));
-  piped.cmds.back().redirections[0].push_back(in);
-
-  return piped;
+bool dsh::AppendToLastCommandLastArgv::wants(CommandLine& cmdLine, const char c) const {
+  return true;
 }
 
-dsh::CommandLine concat_commandlines(std::vector<dsh::CommandLine>& xs) {
-  dsh::CommandLine concated;
-  BOOST_FOREACH(dsh::CommandLine c, xs) {
-    std::copy(c.cmds.begin(), c.cmds.end(), std::back_inserter(concated.cmds));
+void dsh::AppendToLastCommandLastArgv::handle(CommandLine& cmdLine, const char c) const {
+  assert(wants(cmdLine, c));
+  if (cmdLine.size() == 0) {
+    std::stringstream ss;
+    ss << c;
+    cmdLine.push_back(dsh::Command(ss.str()));
+  } else {
+    cmdLine.back().back().push_back(c);
   }
-  return concated;
+}
+
+bool dsh::NewArgOnSpace::wants(CommandLine& cmdLine, const char c) const {
+  return c == ' ';
+}
+
+void dsh::NewArgOnSpace::handle(CommandLine& cmdLine, const char c) const {
+  assert(wants(cmdLine, c));
+  if (cmdLine.size() > 0 && cmdLine.back().argc() > 0 && cmdLine.back().back().length() > 0) {
+    cmdLine.back().push_back("");
+  }
+}
+
+bool dsh::NewCommandOnSemicolon::wants(CommandLine& cmdLine, const char c) const {
+  return c == ';';
+}
+
+void dsh::NewCommandOnSemicolon::handle(CommandLine& cmdLine, const char c) const {
+  assert(wants(cmdLine, c));
+  if (cmdLine.size() > 0 && cmdLine.back().argc() > 0) {
+    cmdLine.push_back(Command(""));
+  }
+}
+
+dsh::Parser::Parser() {
+  charHandlers.push_back(new NewArgOnSpace());
+  charHandlers.push_back(new NewCommandOnSemicolon());
+  charHandlers.push_back(new AppendToLastCommandLastArgv());
+}
+
+dsh::CommandLine dsh::Parser::parse(const std::string& str) {
+  assert(this->cmdLine.size() == 0);
+  // Run first handler that wants this character
+  BOOST_FOREACH(char c, str) {
+    BOOST_FOREACH(CharHandler& h, charHandlers) {
+      if (h.wants(cmdLine, c)) {
+        h.handle(cmdLine, c);
+        break;
+      }
+    }
+  }
+  // For each command: strip any empty args we might have at the end
+  // There will be an empty arg at the end if there was a space trailing the last arg
+  BOOST_FOREACH(dsh::Command& c, cmdLine) {
+    while (c.argc() > 0 && c.back().size() == 0) {
+      c.pop_back();
+    }
+  }
+  // Remove any commands that don't have any args (after the cleanup above)
+  while (cmdLine.size() > 0 && cmdLine.back().argc() == 0) {
+    cmdLine.pop_back();
+  }
+  dsh::CommandLine retval = this->cmdLine;
+  this->cmdLine = CommandLine();  // Maintain invariant: when not in parse(), cmdLine is empty
+  return retval;
 }
 
 dsh::CommandLine dsh::parse(const std::string& str) {
-  using qi::alnum;
-  using qi::char_;
-  using qi::as_string;
-  using qi::lexeme;
-  using qi::omit;
-  using qi::space;
-  using qi::_1;
-  using qi::_2;
-  using phoenix::push_back;
-  using phoenix::construct;
-  using phoenix::at;
-
-  dsh::CommandLine cmdline;
-  std::vector<dsh::CommandLine> cmdlines;
-  auto cmd =
-    (
-     omit[*space] >>
-     (as_string[+(alnum | char_("|-"))] % omit[+space]) >>
-     omit[*space]
-     )[construct<CommandLine>(_1)];
-  auto pipe = (cmd >> omit[*space] >> omit[char_('|')] >> omit[*space] >> cmd);
-  auto maybe_cmd = (cmd | omit[*space]);
-  auto cmds = (maybe_cmd % omit[char_(';')]);
-  qi::parse(str.begin(), str.end(), cmds, cmdlines);
-
-  //std::cout << cmdline->cmdCount() << ' ' << cmdline->cmds.at(0)->argc() << std::endl;
-  //return cmdline;
-  return concat_commandlines(cmdlines);
+  static dsh::Parser p;
+  return p.parse(str);
 }

@@ -67,10 +67,10 @@ void handle_input(const char c, state_t* state) {
     } else if (op.type == RUN_IN_FOREGROUND) {
       dsh::CommandLine cmdline = dsh::parse(state->cmdline);
       puts("");
-      for (unsigned int i = 0; i < cmdline.cmdCount(); i++) {
-        dsh::Command cmd = cmdline.cmds[i];
+      for (unsigned int i = 0; i < cmdline.size(); i++) {
+        dsh::Command cmd = cmdline.at(i);
         if (cmd.argc() > 0) {
-          run_in_foreground(cmd.argv);
+          run_in_foreground(cmd.getArgv());
         }
       }
     } else if (op.type == CLEAR_CMDLINE) {

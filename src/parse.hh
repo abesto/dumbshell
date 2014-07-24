@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include <boost/ptr_container/ptr_vector.hpp>
+
 namespace dsh {
   class Command;
 
@@ -25,22 +27,50 @@ namespace dsh {
     }
   };
 
-  class Command {
-  public:
-    std::vector<std::string> argv;
+  class Command: public std::vector<std::string> {
+  private:
     std::map<unsigned int, std::vector<Redirection> > redirections;
-
-    Command(std::vector<std::string> _argv): argv(_argv) {}
-    unsigned int argc() const { return argv.size(); }
+  public:
+    Command(std::string arg) { push_back(arg); }
+    unsigned int argc() const { return size(); }
+    const std::vector<std::string>& getArgv() const { return *this; }
   };
 
-  class CommandLine {
+  class CommandLine: public std::vector<Command> {
   public:
-    std::vector<Command> cmds;
-    CommandLine() {}
-    CommandLine(Command cmd) { cmds.push_back(cmd); }
-    CommandLine(std::vector<std::string> argv) { cmds.push_back(Command(argv)); }
-    unsigned int cmdCount() const { return cmds.size(); }
+    const std::vector<Command>& getCommands() { return *this; }
+  };
+
+  class CharHandler {
+  public:
+    virtual bool wants(CommandLine& cmdLine, const char c) const = 0;
+    virtual void handle(CommandLine& cmdLine, const char c) const = 0;
+  };
+
+  class AppendToLastCommandLastArgv: public CharHandler {
+  public:
+    virtual bool wants(CommandLine& cmdLine, const char c) const;
+    virtual void handle(CommandLine& cmdLine, const char c) const;
+  };
+
+  class NewArgOnSpace: public CharHandler {
+  public:
+    virtual bool wants(CommandLine& cmdLine, const char c) const;
+    virtual void handle(CommandLine& cmdLine, const char c) const;
+  };
+
+  class NewCommandOnSemicolon: public CharHandler {
+  public:
+    virtual bool wants(CommandLine& cmdLine, const char c) const;
+    virtual void handle(CommandLine& cmdLine, const char c) const;
+  };
+
+  class Parser {
+    CommandLine cmdLine;
+    boost::ptr_vector<CharHandler> charHandlers;
+  public:
+    Parser();
+    CommandLine parse(const std::string& str);
   };
 
   CommandLine parse(const std::string& str);
