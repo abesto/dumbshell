@@ -4,7 +4,8 @@
 #include <string>
 #include <vector>
 
-void run_in_foreground(std::vector<std::string> argv);
+#include "parse.hh"
 
+void run_in_foreground(dsh::CommandLine& cmdLine);
 
 #endif

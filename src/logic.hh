@@ -5,21 +5,24 @@ static const char DEL = 127;
 static const char* PS1 = "$ ";
 
 typedef struct {
-  char * cmdline;
+	char * cmdline;
 } state_t;
 
-state_t mk_state();
-void state_set_cmdline(state_t* state, const char* cmdline);
+state_t
+mk_state();
+void
+state_set_cmdline(state_t* state, const char* cmdline);
 
-typedef enum { APPEND_CHAR, RUN_IN_FOREGROUND,
-               DELETE_LAST_CHAR, CLEAR_CMDLINE } operation_type;
+typedef enum {
+	APPEND_CHAR, RUN_IN_FOREGROUND, DELETE_LAST_CHAR, CLEAR_CMDLINE
+} operation_type;
 typedef union {
-  char c;
+	char c;
 } operation_data;
 
 typedef struct {
-  operation_type type;
-  operation_data data;
+	operation_type type;
+	operation_data data;
 } operation;
 
 unsigned int process_keypress(const char c, operation** out);

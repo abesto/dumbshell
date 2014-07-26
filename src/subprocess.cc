@@ -1,76 +1,126 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
+#include <map>
+#include <boost/foreach.hpp>
 
 #include "subprocess.hh"
+#include "parse.hh"
 
-void run_in_foreground(std::vector<std::string> _argv) {
-  int child_stdin[] = {-1, -1};
-  int child_stdout[] = {-1, -1};
-  int child_stderr[] = {-1, -1};
-  pid_t pid;
+typedef struct {
+	int stdin[2] = { -1, -1 };
+	int stdout[2] = { -1, -1 };
+	int stderr[2] = { -1, -1 };
+} pipes_t;
 
-  char* argv[_argv.size() + 1];
-  for (unsigned int i = 0; i < _argv.size(); i++) {
-    argv[i] = strdup(_argv[i].c_str());
-  }
-  argv[_argv.size()] = NULL;
+void child(dsh::Command& cmd) {
+	char* argv[cmd.argc() + 1];
+	for (unsigned int i = 0; i < cmd.argc(); i++) {
+		argv[i] = strdup(cmd.at(i).c_str());  // To drop the const for use in exec*
+	}
+	argv[cmd.argc()] = NULL;
 
-  pipe(child_stdin);
-  pipe(child_stdout);
-  pipe(child_stderr);
+	dsh::Redirections rs = cmd.redirections;
+	// input stream
+	dup2(rs.find(STDIN_FILENO)->second->pipeReadFd, STDIN_FILENO);
+	close(rs.find(STDIN_FILENO)->second->pipeWriteFd);
+	// the rest are output streams
+	for (auto p = rs.begin(); p != rs.end(); p++) {
+		if (p->first == STDIN_FILENO) {
+			continue;
+		}
+		dup2(p->second->pipeWriteFd, p->second->fromFd);
+		close(p->second->pipeReadFd);
+	}
+	execvp(argv[0], &argv[0]);
+	fprintf(stderr, "No can haz %s (%d)\n", argv[0], errno);
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+	exit(127);
+}
 
-  pid = fork();
-  if (!pid) {
-    dup2(child_stdin[0], STDIN_FILENO); close(child_stdin[1]);
-    dup2(child_stdout[1], STDOUT_FILENO); close(child_stdout[0]);
-    dup2(child_stderr[1], STDERR_FILENO); close(child_stderr[0]);
-    execvp(argv[0], &argv[0]);
-    fprintf(stderr, "No can haz %s (%d)\n", argv[0], errno);
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    exit(127);
-  } else {
-    close(child_stdin[0]);
-    close(child_stdout[1]);
-    close(child_stderr[1]);
+void apply_default_redirections(dsh::Command& cmd) {
+	// dsh::Redirection opens a pipe, even if input=output. Bad.
+	dsh::Redirections& rs = cmd.redirections;
+	if (rs.find(STDIN_FILENO) == rs.end()) {
+		rs.redirectInput(dsh::Redirection(STDIN_FILENO));
+	}
+	if (rs.find(STDOUT_FILENO) == rs.end()) {
+		rs.redirectOutput(dsh::Redirection(STDOUT_FILENO));
+	}
+	if (rs.find(STDERR_FILENO) == rs.end()) {
+		rs.redirectOutput(dsh::Redirection(STDERR_FILENO));
+	}
+}
 
-    for (unsigned int i = 0; i < _argv.size(); i++) {
-      free(argv[i]);
-    }
+void master(dsh::CommandLine& cmdLine) {
+	BOOST_FOREACH(dsh::Command& c, cmdLine) {
+		for (auto p = c.redirections.begin(); p != c.redirections.end(); p++) {
+			dsh::Redirection const* r = p->second;
+			if (p->first == STDIN_FILENO) {
+				fclose(r->pipeRead);
+			} else {
+				fclose(r->pipeWrite);
+			}
+		}
+	}
 
-    fd_set read_fds;
-    struct timeval tv;
+	fd_set read_fds;
+	struct timeval tv;
 
-    int st;
-    do {
-      FD_ZERO(&read_fds);
-      FD_SET(child_stdout[0], &read_fds);
-      FD_SET(child_stderr[0], &read_fds);
-      tv.tv_sec = 5;
-      tv.tv_usec = 0;
-      int max_fd = child_stdout[0] > child_stderr[0] ? child_stdout[0] : child_stderr[0];
-      if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) > 0) {
-        int buf_size = 100;
-        char buf[buf_size];
-        if (FD_ISSET(child_stdout[0], &read_fds)) {
-          while (memset(buf, 0, buf_size) && read(child_stdout[0], buf, buf_size-1)) {
-            printf("%s", buf);
-          }
-        }
-        if (FD_ISSET(child_stderr[0], &read_fds)) {
-          while (memset(buf, 0, buf_size) && read(child_stderr[0], buf, buf_size-1)) {
-            fprintf(stderr, "%s", buf);
-          }
-        }
-      }
-    } while (waitpid(pid, &st, WNOHANG) != pid);
+	int finishedChildCount = 0;
+	while (finishedChildCount != cmdLine.size()) {
+		FD_ZERO(&read_fds);
+		int max_fd = 0;
+		BOOST_FOREACH(dsh::Command& c, cmdLine) {
+			for (auto p = c.redirections.begin(); p != c.redirections.end(); p++) {
+				if (p->first != STDIN_FILENO) {
+					int fd = p->second->pipeReadFd;
+					FD_SET(fd, &read_fds);
+					if (fd > max_fd) {
+						max_fd = fd;
+					}
+				}
+			}
+		}
+		tv.tv_sec = 5;
+		tv.tv_usec = 0;
 
-    close(child_stdin[1]);
-    close(child_stdout[0]);
-    close(child_stderr[0]);
-  }
+		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) > 0) {
+			int buf_size = 100;
+			char buf[buf_size];
+			BOOST_FOREACH(dsh::Command& c, cmdLine) {
+				for (auto p = c.redirections.begin(); p != c.redirections.end(); p++) {
+					dsh::Redirection const* r = p->second;
+					if (FD_ISSET(r->pipeReadFd, &read_fds)) {
+						while (memset(buf, 0, buf_size) && read(r->pipeReadFd, buf, buf_size - 1)) {
+							write(r->toFd, buf, buf_size);
+						}
+					}
+				}
+			}
+		}
+
+		BOOST_FOREACH(dsh::Command& c, cmdLine) {
+			int status;
+			if (waitpid(c.pid, &status, WNOHANG) == c.pid) {
+				finishedChildCount += 1;
+			}
+		}
+	}
+}
+
+void run_in_foreground(dsh::CommandLine& cmdLine) {
+	BOOST_FOREACH(dsh::Command& cmd, cmdLine) {
+		apply_default_redirections(cmd);
+		cmd.pid = fork();
+		if (!cmd.pid) {
+			child(cmd);
+		}
+	}
+
+	master(cmdLine);
 }
