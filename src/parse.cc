@@ -8,22 +8,29 @@
 #include "parse.hh"
 
 void dsh::Command::redirect(const unsigned int fd, dsh::Command& to) {
-	dsh::Redirection r = dsh::Redirection(fd);  // TODO: pass in &to once Redirection supports marking a Command as the target
-	redirections.redirectOutput(r);
-	to.redirections.redirectInput(r);
+	dsh::Redirection left  = dsh::Redirection(fd);
+	dsh::Redirection right = dsh::Redirection(fd);
+	redirections.redirectOutput(left)->toFd =	to.redirections.redirectInput(right)->pipeWriteFd;
 }
 
-void dsh::Redirections::redirectInput(const Redirection& r) {
+dsh::Redirection* dsh::Redirections::redirectInput(const Redirection& r) {
 	auto stdinRs = find(STDIN_FILENO);
 	if (stdinRs != end()) {
 		erase(stdinRs);
 	}
 	boost::assign::ptr_map_insert(*this)(STDIN_FILENO, r);
-	find(STDIN_FILENO)->second->closePipeOnDestruct();
+	dsh::Redirection* inserted = find(STDIN_FILENO)->second;
+	//inserted->closePipeOnDestruct();
+	return inserted;
 }
 
-void dsh::Redirections::redirectOutput(const Redirection& r) {
+dsh::Redirection* dsh::Redirections::redirectOutput(const Redirection& r) {
 	boost::assign::ptr_map_insert(*this)(r.fromFd, r);
+	dsh::Redirection* inserted;
+	for (auto p = find(r.fromFd); p != end(); p++) {
+		inserted = p->second;
+	}
+	return inserted;
 }
 
 bool dsh::AppendToLastCommandLastArgv::wants(CommandLine& cmdLine,

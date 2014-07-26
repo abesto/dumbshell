@@ -78,8 +78,8 @@ public:
 	Redirections() {
 	}
 
-	void redirectInput(const Redirection& r);
-	void redirectOutput(const Redirection& r);
+	Redirection* redirectInput(const Redirection& r);
+	Redirection* redirectOutput(const Redirection& r);
 };
 
 // TODO: needs to be split up into at least two classes:

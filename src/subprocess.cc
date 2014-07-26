@@ -8,6 +8,7 @@
 
 #include "subprocess.hh"
 #include "parse.hh"
+#include "trace.hh"
 
 typedef struct {
 	int stdin[2] = { -1, -1 };
@@ -24,16 +25,21 @@ void child(dsh::Command& cmd) {
 
 	dsh::Redirections rs = cmd.redirections;
 	// input stream
+	trace() << "child(" << getpid() << "): " << STDIN_FILENO << " > " << rs.find(STDIN_FILENO)->second->pipeReadFd << std::endl;
 	dup2(rs.find(STDIN_FILENO)->second->pipeReadFd, STDIN_FILENO);
+	trace() << "child(" << getpid() << "): close " << rs.find(STDIN_FILENO)->second->pipeWriteFd << std::endl;
 	close(rs.find(STDIN_FILENO)->second->pipeWriteFd);
 	// the rest are output streams
 	for (auto p = rs.begin(); p != rs.end(); p++) {
 		if (p->first == STDIN_FILENO) {
 			continue;
 		}
+		trace() << "child(" << getpid() << "): " <<  p->second->fromFd << " > " << p->second->pipeWriteFd << std::endl;
 		dup2(p->second->pipeWriteFd, p->second->fromFd);
+		trace() << "child(" << getpid() << "): close " << p->second->pipeReadFd << std::endl;
 		close(p->second->pipeReadFd);
 	}
+	trace() << "child(" << getpid() << "): execve " << argv[0] << std::endl;
 	execvp(argv[0], &argv[0]);
 	fprintf(stderr, "No can haz %s (%d)\n", argv[0], errno);
 	close(STDIN_FILENO);
@@ -73,12 +79,21 @@ void master(dsh::CommandLine& cmdLine) {
 
 	int finishedChildCount = 0;
 	while (finishedChildCount != cmdLine.size()) {
+		BOOST_FOREACH(dsh::Command& c, cmdLine) {
+			int status;
+			if (waitpid(c.pid, &status, WNOHANG) == c.pid) {
+				finishedChildCount += 1;
+			}
+		}
+
 		FD_ZERO(&read_fds);
 		int max_fd = 0;
+		trace() << "master: will select on ";
 		BOOST_FOREACH(dsh::Command& c, cmdLine) {
 			for (auto p = c.redirections.begin(); p != c.redirections.end(); p++) {
 				if (p->first != STDIN_FILENO) {
 					int fd = p->second->pipeReadFd;
+					trace() << fd << ' ';
 					FD_SET(fd, &read_fds);
 					if (fd > max_fd) {
 						max_fd = fd;
@@ -88,6 +103,7 @@ void master(dsh::CommandLine& cmdLine) {
 		}
 		tv.tv_sec = 5;
 		tv.tv_usec = 0;
+		trace() << ", max_fd=" << max_fd << std::endl;
 
 		if (select(max_fd + 1, &read_fds, NULL, NULL, &tv) > 0) {
 			int buf_size = 100;
@@ -96,6 +112,9 @@ void master(dsh::CommandLine& cmdLine) {
 				for (auto p = c.redirections.begin(); p != c.redirections.end(); p++) {
 					dsh::Redirection const* r = p->second;
 					if (FD_ISSET(r->pipeReadFd, &read_fds)) {
+						trace()
+								<< "master: forwarding " << r->pipeReadFd << "->" << r->toFd
+								<< ", output of " << c.at(0) << " originally on fd " << r->fromFd << std::endl;
 						while (memset(buf, 0, buf_size) && read(r->pipeReadFd, buf, buf_size - 1)) {
 							write(r->toFd, buf, buf_size);
 						}
@@ -103,22 +122,18 @@ void master(dsh::CommandLine& cmdLine) {
 				}
 			}
 		}
-
-		BOOST_FOREACH(dsh::Command& c, cmdLine) {
-			int status;
-			if (waitpid(c.pid, &status, WNOHANG) == c.pid) {
-				finishedChildCount += 1;
-			}
-		}
 	}
 }
 
 void run_in_foreground(dsh::CommandLine& cmdLine) {
+	trace() << "Start\n";
 	BOOST_FOREACH(dsh::Command& cmd, cmdLine) {
 		apply_default_redirections(cmd);
 		cmd.pid = fork();
 		if (!cmd.pid) {
 			child(cmd);
+		} else {
+			trace() << "master spawned child " << cmd.pid << " for " << cmd.at(0) << std::endl;
 		}
 	}
 

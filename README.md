@@ -3,7 +3,8 @@
 This is my excuse to write C++. (See the branch called `c` to see my excuse for writing C.)
 
 Features:
- - it can run ` ; ls   ; ls -la  ; echo  foobar`
+ - it can run ` ; ls   ; ls -la  ; echo  foobar`, even though they run parallelly atm, due to hackage for: 
+ - it can run `ls -l | head -3`, even though the implementation is not quite clean right now.
 
 Dependencies:
  - Boost 1.55.0
@@ -26,24 +27,10 @@ make check
 ### Screenshot
 
 ```
-$ (5) ls -l
-total 5232
--rw-r--r--  1 abesto staff   13533 Jul 15 12:58 CMakeCache.txt
-drwxr-xr-x 22 abesto staff     748 Jul 17 18:36 CMakeFiles
--rw-r--r--  1 abesto staff     488 Jul 17 16:41 CMakeLists.txt
--rw-r--r--  1 abesto staff     311 Jul 15 12:49 CTestTestfile.cmake
--rw-r--r--  1 abesto staff    9903 Jul 17 17:04 Makefile
--rw-r--r--  1 abesto staff     258 Jul 17 16:41 README.md
--rwxr-xr-x  1 abesto staff   26456 Jul 17 18:36 all_tests
--rw-r--r--  1 abesto staff    1251 Jul 15 12:20 cmake_install.cmake
--rwxr-xr-x  1 abesto staff   10664 Jul 15 11:58 coverage
-drwxr-xr-x  2 abesto staff      68 Jul 15 08:46 doc
--rwxr-xr-x  1 abesto staff   16732 Jul 17 18:36 dsh
--rw-r--r--  1 abesto staff   20184 Jul 17 18:36 libdsh_lib.a
--rw-r--r--  1 abesto staff 5211827 Jul 15 21:27 out
--rwxr-xr-x  1 abesto staff   14008 Jul 15 12:47 run_checks
-drwxr-xr-x 12 abesto staff     408 Jul 17 18:36 src
-drwxr-xr-x  7 abesto staff     238 Jul 17 18:25 tests
+$ (15) ls -l | head -3
+total 2688
+-rw-r--r--  1 abesto staff   14047 Jul 26 08:53 CMakeCache.txt
+drwxr-xr-x 19 abesto staff     646 Jul 26 17:21 CMakeFiles
 ```
 
 ----
